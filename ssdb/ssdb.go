@@ -11,6 +11,7 @@ import (
 type Client struct {
 	sock    *net.TCPConn
 	recvBuf bytes.Buffer
+	err     error
 }
 
 // Connect returns a Client.
@@ -239,8 +240,8 @@ func (c *Client) send(args []interface{}) error {
 		buf.WriteByte('\n')
 	}
 	buf.WriteByte('\n')
-	_, err := c.sock.Write(buf.Bytes())
-	return err
+	_, c.err = c.sock.Write(buf.Bytes())
+	return c.err
 }
 
 func (c *Client) recv() ([]string, error) {
@@ -252,6 +253,7 @@ func (c *Client) recv() ([]string, error) {
 		}
 		n, err := c.sock.Read(tmp[0:])
 		if err != nil {
+			c.err = err
 			return nil, err
 		}
 		c.recvBuf.Write(tmp[0:n])

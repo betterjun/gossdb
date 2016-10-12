@@ -32,6 +32,8 @@ type Pool struct {
 	poolSize int32
 	// Current connection number to server.
 	active int32
+	// Pool is closed or not
+	opened bool
 }
 
 // Open creates the channel for Client connections.
@@ -41,35 +43,48 @@ func (p *Pool) Open() (err error) {
 	}
 
 	p.clients = make(chan *Client, p.poolSize)
+	p.opened = true
 	return nil
 }
 
 // Close closes the channel for Client connections.
 func (p *Pool) Close() {
-	close(p.clients)
-	for c := range p.clients {
-		c.Close()
-	}
-}
+	if p.opened == true {
+		close(p.clients)
+		p.opened = false
 
-// Get returns a free Client connection, if no, just blocking wait.
-func (p *Pool) Get() (c *Client) {
-	for {
-		select {
-		case c = <-p.clients:
-			if c != nil {
-				return c
-			}
-		default:
-			p.gen()
+		for c := range p.clients {
+			c.Close()
 		}
 	}
 }
 
+// Get returns a free Client connection, if no connection is free, just blocking until the pool is closed.
+func (p *Pool) Get() (c *Client) {
+	for p.opened {
+		select {
+		case c = <-p.clients:
+			return c
+		default:
+			p.gen()
+		}
+	}
+	return nil
+}
+
 // Release releases a Client connection.
 func (p *Pool) Release(c *Client) {
-	// TODO : may send to a closed channel, fix it
-	p.clients <- c
+	if c.err != nil {
+		c.Close()
+		return
+	}
+
+	// the pool may be closed already.
+	if p.opened == true {
+		p.clients <- c
+	} else {
+		c.Close()
+	}
 }
 
 // ServerAddress returns the server ip and port.
