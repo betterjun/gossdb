@@ -34,17 +34,15 @@ func TestToString(t *testing.T) {
 	}
 	//t.Logf("Info result:%v\n", result)
 
-	result, err = c.FlushDB("kv")
+	err = c.FlushDB("kv")
 	if err != nil {
 		t.Fatalf("FlushDB failed, err:%v\n", err)
 	}
-	//t.Logf("FlushDB result:%v\n", result)
 
-	result, err = c.FlushDB("")
+	err = c.FlushDB("")
 	if err != nil {
 		t.Fatalf("FlushDB failed, err:%v\n", err)
 	}
-	//t.Logf("FlushDB result:%v\n", result)
 
 	var key = "gossdb"
 	var value = "value for test"
