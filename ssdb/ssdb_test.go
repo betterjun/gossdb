@@ -152,5 +152,30 @@ func TestToString(t *testing.T) {
 		t.Fatalf("Ttl result:%v\n", ret)
 	}
 
+	// the key is not existed
+	intKey := "intKey"
+	ret, err = c.Incr(intKey, 1)
+	if err != nil {
+		t.Logf("Incr failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Incr result, expected:%v, got:%v\n", 1, ret)
+	}
+
+	// the key is an integer
+	ret, err = c.Incr(intKey, 1)
+	if err != nil {
+		t.Fatalf("Incr failed, err:%v\n", err)
+	}
+	if ret != 2 {
+		t.Fatalf("Incr result, expected:%v, got:%v\n", 2, ret)
+	}
+
+	// the key is not an integer
+	ret, err = c.Incr(key, 1)
+	if err != nil {
+		t.Logf("Incr failed, err:%v\n", err)
+	}
+
 	p.Release(c)
 }

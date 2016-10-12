@@ -258,6 +258,29 @@ func (c *Client) Ttl(key string) (int64, error) {
 	}
 }
 
+// Incr increase the key by number.
+// The new value. If the old value cannot be converted to an integer, returns error Status Code.
+func (c *Client) Incr(key string, number int64) (int64, error) {
+	resp, err := c.do("incr", key, number)
+	fmt.Printf("Incr returns line:%v, %v\n", len(resp), strings.Join(resp, " "))
+	if err != nil {
+		return 0, err
+	}
+
+	switch len(resp) {
+	case 0:
+		return 0, fmt.Errorf("no response received")
+	case 1:
+		return 0, fmt.Errorf(resp[0])
+	default:
+		if resp[0] == "ok" {
+			return strconv.ParseInt(resp[1], 10, 64)
+		} else {
+			return 0, fmt.Errorf(resp[0])
+		}
+	}
+}
+
 func (c *Client) do(args ...interface{}) ([]string, error) {
 	err := c.send(args)
 	if err != nil {
