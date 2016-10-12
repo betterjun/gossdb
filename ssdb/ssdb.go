@@ -115,6 +115,39 @@ func (c *Client) Incr(key string, number int64) (int64, error) {
 	return c.doReturnInt("incr", key, number)
 }
 
+func (c *Client) Setbit(key string, offset int32, value int8) (int64, error) {
+	return c.doReturnInt("setbit", key, offset, value)
+}
+
+func (c *Client) Getbit(key string, offset int32) (int64, error) {
+	return c.doReturnInt("getbit", key, offset)
+}
+
+// from the second argument, is optional.
+// key, start
+// key, start, size
+func (c *Client) Countbit(key string, args ...int32) (int64, error) {
+	return c.doReturnInt("countbit", key, args)
+}
+
+// from the second argument, is optional.
+// key, start
+// key, start, end
+func (c *Client) Bitcount(key string, args ...int32) (int64, error) {
+	return c.doReturnInt("bitcount", key, args)
+}
+
+// from the second argument, is optional.
+// key, start
+// key, start, size
+func (c *Client) Substr(key string, args ...int32) (string, error) {
+	return c.doReturnString("substr ", key, args)
+}
+
+func (c *Client) Strlen(key string) (int64, error) {
+	return c.doReturnInt("strlen", key)
+}
+
 func (c *Client) doReturn(args ...interface{}) error {
 	err := c.send(args)
 	if err != nil {
