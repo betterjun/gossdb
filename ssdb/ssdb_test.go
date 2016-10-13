@@ -241,5 +241,29 @@ func TestToString(t *testing.T) {
 		t.Fatalf("Strlen result, expected:%v, got:%v\n", len(value), ret)
 	}
 
+	keys, err := c.Keys("", "", 1000)
+	if err != nil {
+		t.Fatalf("Keys failed, err:%v\n", err)
+	}
+	t.Logf("Keys failed, keys:%v\n", keys)
+
+	keys, err = c.Rkeys("", "", 1000)
+	if err != nil {
+		t.Fatalf("Rkeys failed, err:%v\n", err)
+	}
+	t.Logf("Rkeys failed, keys:%v\n", keys)
+
+	kvs, err := c.Scan("", "", 1000)
+	if err != nil {
+		t.Fatalf("Scan failed, err:%v\n", err)
+	}
+	t.Logf("Scan failed, kvs:%v\n", kvs)
+
+	kvs, err = c.Rscan("", "", 1000)
+	if err != nil {
+		t.Fatalf("Rscan failed, err:%v\n", kvs)
+	}
+	t.Logf("Rscan failed, kvs:%v\n", kvs)
+
 	p.Release(c)
 }

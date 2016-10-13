@@ -192,6 +192,22 @@ func (c *Client) Strlen(key string) (int64, error) {
 	return c.doReturnInt("strlen", key)
 }
 
+func (c *Client) Keys(keyStart, keyEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("keys", keyStart, keyEnd, limit)
+}
+
+func (c *Client) Rkeys(keyStart, keyEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("rkeys", keyStart, keyEnd, limit)
+}
+
+func (c *Client) Scan(keyStart, keyEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("scan", keyStart, keyEnd, limit)
+}
+
+func (c *Client) Rscan(keyStart, keyEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("rscan", keyStart, keyEnd, limit)
+}
+
 func (c *Client) doReturn(args ...interface{}) error {
 	err := c.send(args)
 	if err != nil {
@@ -294,6 +310,37 @@ func (c *Client) doReturnStringSlice(args ...interface{}) ([]string, error) {
 	}
 }
 
+func (c *Client) doReturnStringMap(args ...interface{}) (map[string]string, error) {
+	err := c.send(args)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.recv()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("doReturnString: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+
+	switch len(resp) {
+	case 0:
+		return nil, fmt.Errorf("no response received")
+	case 1:
+		return nil, fmt.Errorf(resp[0])
+	default:
+		if resp[0] == "ok" {
+			kv := resp[1:]
+			m := make(map[string]string)
+			for i := 0; i < len(kv); i = i + 2 {
+				m[kv[i]] = kv[i+1]
+			}
+			return m, nil
+		} else {
+			return nil, fmt.Errorf(resp[0])
+		}
+	}
+}
+
 func (c *Client) do(args ...interface{}) ([]string, error) {
 	err := c.send(args)
 	if err != nil {
@@ -329,9 +376,8 @@ func (c *Client) send(args []interface{}) error {
 				buf.WriteByte('\n')
 			}
 			continue
-		case int8, int16, int32, int64, int:
-			s = fmt.Sprintf("%d", arg)
-		case uint8, uint16, uint32, uint64, uint:
+		case int8, int16, int32, int64, int,
+			uint8, uint16, uint32, uint64, uint:
 			s = fmt.Sprintf("%d", arg)
 		case float64:
 			s = fmt.Sprintf("%f", arg)
@@ -345,7 +391,6 @@ func (c *Client) send(args []interface{}) error {
 			s = ""
 		default:
 			a := reflect.TypeOf(arg)
-
 			return fmt.Errorf("bad arguments of type %v", a.Kind())
 			//return fmt.Errorf("bad arguments")
 		}
