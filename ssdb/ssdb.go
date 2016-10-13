@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -115,35 +116,78 @@ func (c *Client) Incr(key string, number int64) (int64, error) {
 	return c.doReturnInt("incr", key, number)
 }
 
+/* Setbit changes a single bit of a string. The string is auto expanded.
+Parameters
+    key -
+    offset - bit offset, must in range of [0, 1073741824].
+    val - 0 or 1.
+Return Value
+	The value of the bit before it was set: 0 or 1. If val is not 0 or 1, returns false.
+*/
 func (c *Client) Setbit(key string, offset int32, value int8) (int64, error) {
 	return c.doReturnInt("setbit", key, offset, value)
 }
 
+/* Getbit return a single bit out of a string.
+Parameters
+    key -
+    offset - bit offset.
+Return Value
+	0 or 1.
+*/
 func (c *Client) Getbit(key string, offset int32) (int64, error) {
 	return c.doReturnInt("getbit", key, offset)
 }
 
-// from the second argument, is optional.
-// key, start
-// key, start, size
-func (c *Client) Countbit(key string, args ...int32) (int64, error) {
+/*
+Countbit counts the number of set bits (population counting) in a string.
+Unlike bitcount, it takes part of the string by start and size, not start and end.
+Parameters
+    key -
+    start - Optional, inclusive, if start is negative, count from start'th character from the end of string.
+    size - Optional, if size is negative, then that many characters will be omitted from the end of string.
+Return Value
+	The number of bits set to 1.
+*/
+func (c *Client) Countbit(key string, args ...int) (int64, error) {
 	return c.doReturnInt("countbit", key, args)
 }
 
-// from the second argument, is optional.
-// key, start
-// key, start, end
-func (c *Client) Bitcount(key string, args ...int32) (int64, error) {
+/*
+Bitcount counts the number of set bits (population counting) in a string. Like Redis's bitcount.
+Parameters
+    key -
+    start - Optional, inclusive, if start is negative, count from start'th character from the end of string.
+    end - Optional, inclusive.
+Return Value
+	The number of bits set to 1.
+*/
+func (c *Client) Bitcount(key string, args ...int) (int64, error) {
 	return c.doReturnInt("bitcount", key, args)
 }
 
-// from the second argument, is optional.
-// key, start
-// key, start, size
-func (c *Client) Substr(key string, args ...int32) (string, error) {
-	return c.doReturnString("substr ", key, args)
+/*
+Substr returns part of a string, like PHP's substr() function.
+Parameters
+    key -
+    start - Optional, the offset of first byte returned. If start is negative,
+		the returned string will start at the start'th character from the end of string.
+    size - Optional, number of bytes returned. If size is negative,
+		then that many characters will be omitted from the end of string.
+Return Value
+	The extracted part of the string.
+*/
+func (c *Client) Substr(key string, args ...int) (string, error) {
+	return c.doReturnString("substr", key, args)
 }
 
+/*
+Strlen returns the number of bytes of a string.
+Parameters
+    key -
+Return Value
+	The number of bytes of the string, if key not exists, returns 0.
+*/
 func (c *Client) Strlen(key string) (int64, error) {
 	return c.doReturnInt("strlen", key)
 }
@@ -224,6 +268,32 @@ func (c *Client) doReturnString(args ...interface{}) (string, error) {
 	}
 }
 
+func (c *Client) doReturnStringSlice(args ...interface{}) ([]string, error) {
+	err := c.send(args)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.recv()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("doReturnString: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+
+	switch len(resp) {
+	case 0:
+		return nil, fmt.Errorf("no response received")
+	case 1:
+		return nil, fmt.Errorf(resp[0])
+	default:
+		if resp[0] == "ok" {
+			return resp[1:], nil
+		} else {
+			return nil, fmt.Errorf(resp[0])
+		}
+	}
+}
+
 func (c *Client) do(args ...interface{}) ([]string, error) {
 	err := c.send(args)
 	if err != nil {
@@ -250,9 +320,18 @@ func (c *Client) send(args []interface{}) error {
 				buf.WriteByte('\n')
 			}
 			continue
-		case int:
+		case []int:
+			for _, d := range arg {
+				s = fmt.Sprintf("%d", d)
+				buf.WriteString(fmt.Sprintf("%d", len(s)))
+				buf.WriteByte('\n')
+				buf.WriteString(s)
+				buf.WriteByte('\n')
+			}
+			continue
+		case int8, int16, int32, int64, int:
 			s = fmt.Sprintf("%d", arg)
-		case int64:
+		case uint8, uint16, uint32, uint64, uint:
 			s = fmt.Sprintf("%d", arg)
 		case float64:
 			s = fmt.Sprintf("%f", arg)
@@ -265,7 +344,10 @@ func (c *Client) send(args []interface{}) error {
 		case nil:
 			s = ""
 		default:
-			return fmt.Errorf("bad arguments")
+			a := reflect.TypeOf(arg)
+
+			return fmt.Errorf("bad arguments of type %v", a.Kind())
+			//return fmt.Errorf("bad arguments")
 		}
 		buf.WriteString(fmt.Sprintf("%d", len(s)))
 		buf.WriteByte('\n')

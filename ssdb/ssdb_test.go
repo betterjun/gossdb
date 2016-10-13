@@ -45,7 +45,7 @@ func TestToString(t *testing.T) {
 	}
 
 	var key = "gossdb"
-	var value = "value for test"
+	var value = "value \t\t\tfor test\r\nsecond line"
 	err = c.Set(key, value)
 	if err != nil {
 		t.Fatalf("Set failed, err:%v\n", err)
@@ -173,6 +173,72 @@ func TestToString(t *testing.T) {
 	ret, err = c.Incr(key, 1)
 	if err != nil {
 		t.Logf("Incr failed, err:%v\n", err)
+	}
+
+	// even the key is not existed, setbit will set it.
+	keyBitMap := "bitmap"
+	ret, err = c.Setbit(keyBitMap, 100, 1)
+	if err != nil {
+		t.Fatalf("Setbit failed, err:%v\n", err)
+	}
+
+	ret, err = c.Getbit(keyBitMap, 100)
+	if err != nil {
+		t.Fatalf("Getbit failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Getbit result, expected:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.Countbit(keyBitMap, 1, 10)
+	if err != nil {
+		t.Fatalf("Countbit failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Countbit result, expected:%v, got:%v\n", 0, ret)
+	}
+	ret, err = c.Countbit(keyBitMap)
+	if err != nil {
+		t.Fatalf("Countbit failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Countbit result, expected:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.Bitcount(keyBitMap, 1, 10)
+	if err != nil {
+		t.Fatalf("Bitcount failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Bitcount result, expected:%v, got:%v\n", 0, ret)
+	}
+	ret, err = c.Bitcount(keyBitMap)
+	if err != nil {
+		t.Fatalf("Bitcount failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Bitcount result, expected:%v, got:%v\n", 1, ret)
+	}
+
+	err = c.Set(key, value)
+	if err != nil {
+		t.Fatalf("Set failed, err:%v\n", err)
+	}
+
+	v, err = c.Substr(key, 0, 2)
+	if err != nil {
+		t.Fatalf("Substr failed, err:%v\n", err)
+	}
+	if v != "va" {
+		t.Fatalf("Substr result, expected:%v, got:%v\n", "va", v)
+	}
+
+	ret, err = c.Strlen(key)
+	if err != nil {
+		t.Fatalf("Strlen failed, err:%v\n", err)
+	}
+	if int(ret) != len(value) {
+		t.Fatalf("Strlen result, expected:%v, got:%v\n", len(value), ret)
 	}
 
 	p.Release(c)
