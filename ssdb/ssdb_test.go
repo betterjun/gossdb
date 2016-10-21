@@ -265,5 +265,37 @@ func TestToString(t *testing.T) {
 	}
 	t.Logf("Rscan failed, kvs:%v\n", kvs)
 
+	ret, err = c.MultiSet("a", 1, "b", 2, "c", 4)
+	if err != nil {
+		t.Fatalf("MultiSet failed, err:%v\n", err)
+	}
+	if ret != 3 {
+		t.Fatalf("MultiSet result, expected:%v, got:%v\n", 3, ret)
+	}
+
+	vals, err := c.MultiGet("a", "b", "c")
+	if err != nil {
+		t.Fatalf("MultiGet failed, err:%v\n", err)
+	}
+	if len(vals) != 6 {
+		t.Fatalf("MultiGet result, expected:%v, got:%v\n", 6, len(vals))
+	}
+
+	ret, err = c.MultiDel("a")
+	if err != nil {
+		t.Fatalf("MultiDel failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("MultiDel result, expected:%v, got:%v\n", 1, ret)
+	}
+
+	vals, err = c.MultiGet("a", "b", "c")
+	if err != nil {
+		t.Fatalf("MultiGet failed, err:%v\n", err)
+	}
+	if len(vals) != 4 {
+		t.Fatalf("MultiGet result, expected:%v, got:%v\n", 4, len(vals))
+	}
+
 	p.Release(c)
 }

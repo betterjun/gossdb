@@ -208,6 +208,21 @@ func (c *Client) Rscan(keyStart, keyEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("rscan", keyStart, keyEnd, limit)
 }
 
+//multi_set key1 value1 key2 value2 ...
+func (c *Client) MultiSet(args ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_set", args)
+}
+
+//multi_get key1 key2 ...
+func (c *Client) MultiGet(keys ...interface{}) ([]string, error) {
+	return c.doReturnStringSlice("multi_get", keys)
+}
+
+//multi_del key1 key2 ...
+func (c *Client) MultiDel(keys ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_del", keys)
+}
+
 func (c *Client) doReturn(args ...interface{}) error {
 	err := c.send(args)
 	if err != nil {
@@ -355,8 +370,6 @@ func (c *Client) send(args []interface{}) error {
 	for _, arg := range args {
 		var s string
 		switch arg := arg.(type) {
-		case string:
-			s = arg
 		case []byte:
 			s = string(arg)
 		case []string:
@@ -376,23 +389,26 @@ func (c *Client) send(args []interface{}) error {
 				buf.WriteByte('\n')
 			}
 			continue
-		case int8, int16, int32, int64, int,
-			uint8, uint16, uint32, uint64, uint:
-			s = fmt.Sprintf("%d", arg)
-		case float64:
-			s = fmt.Sprintf("%f", arg)
-		case bool:
-			if arg {
-				s = "1"
-			} else {
-				s = "0"
+		case []interface{}:
+			for _, d := range arg {
+				v, err := formatInterface(d)
+				if err != nil {
+					return err
+				}
+				s = v
+
+				buf.WriteString(fmt.Sprintf("%d", len(s)))
+				buf.WriteByte('\n')
+				buf.WriteString(s)
+				buf.WriteByte('\n')
 			}
-		case nil:
-			s = ""
+			continue
 		default:
-			a := reflect.TypeOf(arg)
-			return fmt.Errorf("bad arguments of type %v", a.Kind())
-			//return fmt.Errorf("bad arguments")
+			v, err := formatInterface(arg)
+			if err != nil {
+				return err
+			}
+			s = v
 		}
 		buf.WriteString(fmt.Sprintf("%d", len(s)))
 		buf.WriteByte('\n')
@@ -402,6 +418,40 @@ func (c *Client) send(args []interface{}) error {
 	buf.WriteByte('\n')
 	_, c.err = c.sock.Write(buf.Bytes())
 	return c.err
+}
+
+// formatInterface formats any value as a string.
+func formatInterface(value interface{}) (string, error) {
+	return formatAtom(reflect.ValueOf(value))
+}
+
+// formatAtom formats a value without inspecting its internal structure.
+func formatAtom(v reflect.Value) (string, error) {
+	switch v.Kind() {
+	case reflect.Invalid:
+		return "", nil
+	case reflect.Int, reflect.Int8, reflect.Int16,
+		reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(v.Int(), 10), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16,
+		reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return strconv.FormatUint(v.Uint(), 10), nil
+	case reflect.Float32:
+		return strconv.FormatFloat(v.Float(), 'f', 10, 32), nil
+	case reflect.Float64:
+		return strconv.FormatFloat(v.Float(), 'f', 10, 64), nil
+	case reflect.Bool:
+		if v.Bool() {
+			return "1", nil
+		} else {
+			return "0", nil
+		}
+	case reflect.String:
+		return v.String(), nil
+	default:
+		//panic("wrong type data for gossdb")
+		return "", fmt.Errorf("bad arguments of type %v", v.Kind())
+	}
 }
 
 func (c *Client) recv() ([]string, error) {
