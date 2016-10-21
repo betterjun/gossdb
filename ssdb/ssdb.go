@@ -192,33 +192,68 @@ func (c *Client) Strlen(key string) (int64, error) {
 	return c.doReturnInt("strlen", key)
 }
 
+// Keys works likely Scan, but only return the keys.
+// Just refer the Scan description below.
 func (c *Client) Keys(keyStart, keyEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("keys", keyStart, keyEnd, limit)
 }
 
+// Rkeys works likely Keys, but in reverse order.
 func (c *Client) Rkeys(keyStart, keyEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("rkeys", keyStart, keyEnd, limit)
 }
 
+/*
+Scan lists key-value pairs with keys in range (keyStart, keyEnd].
+("", ""] means no range limit.
+This command can do wildchar * like search, but only prefix search,
+and the * char must never occur in key_start and key_end!
+
+Parameters
+    keyStart - The lower bound(not included) of keys to be returned, empty string means -inf(no limit).
+    keyEnd - The upper bound(inclusive) of keys to be returned, empty string means +inf(no limit).
+    limit - Up to that many pairs will be returned.
+Return Value
+	An associative array containing the key-value pairs.
+*/
 func (c *Client) Scan(keyStart, keyEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("scan", keyStart, keyEnd, limit)
 }
 
+// Rscan works likely Scan, but in reverse order.
 func (c *Client) Rscan(keyStart, keyEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("rscan", keyStart, keyEnd, limit)
 }
 
-//multi_set key1 value1 key2 value2 ...
+/*
+MultiSet sets multiple key-value pairs(kvs) in one method call.
+Parameters
+    key1 value1 key2 value2 ...
+Return Value
+	Number of keys are set.
+*/
 func (c *Client) MultiSet(args ...interface{}) (int64, error) {
 	return c.doReturnInt("multi_set", args)
 }
 
-//multi_get key1 key2 ...
+/*
+MultiSet get the values related to the specified multiple keys.
+Parameters
+    key1 key2 ...
+Return Value
+	Key-value list.
+*/
 func (c *Client) MultiGet(keys ...interface{}) ([]string, error) {
 	return c.doReturnStringSlice("multi_get", keys)
 }
 
-//multi_del key1 key2 ...
+/*
+MultiSet deletes specified keys.
+Parameters
+    key1 key2 ...
+Return Value
+	Number of keys are deleted.
+*/
 func (c *Client) MultiDel(keys ...interface{}) (int64, error) {
 	return c.doReturnInt("multi_del", keys)
 }
@@ -420,12 +455,13 @@ func (c *Client) send(args []interface{}) error {
 	return c.err
 }
 
-// formatInterface formats any value as a string.
+// formatInterface formats any supported value as a string,
+// but returns an error for unsupported.
 func formatInterface(value interface{}) (string, error) {
 	return formatAtom(reflect.ValueOf(value))
 }
 
-// formatAtom formats a value without inspecting its internal structure.
+// formatAtom formats a built-in value without inspecting its internal structure.
 func formatAtom(v reflect.Value) (string, error) {
 	switch v.Kind() {
 	case reflect.Invalid:
@@ -449,8 +485,8 @@ func formatAtom(v reflect.Value) (string, error) {
 	case reflect.String:
 		return v.String(), nil
 	default:
-		//panic("wrong type data for gossdb")
-		return "", fmt.Errorf("bad arguments of type %v", v.Kind())
+		//panic("unsupported data type for gossdb")
+		return "", fmt.Errorf("unsupported data type %v", v.Kind())
 	}
 }
 
