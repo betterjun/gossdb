@@ -34,7 +34,7 @@ func formatData(args []interface{}) ([]byte, error) {
 			continue
 		case []interface{}:
 			for _, d := range arg {
-				v, err := formatInterface(d)
+				v, err := formatAtom(reflect.ValueOf(d))
 				if err != nil {
 					return nil, err
 				}
@@ -46,7 +46,7 @@ func formatData(args []interface{}) ([]byte, error) {
 			}
 			continue
 		default:
-			v, err := formatInterface(arg)
+			v, err := formatAtom(reflect.ValueOf(arg))
 			if err != nil {
 				return nil, err
 			}
@@ -59,12 +59,6 @@ func formatData(args []interface{}) ([]byte, error) {
 	}
 	buf.WriteByte('\n')
 	return buf.Bytes(), nil
-}
-
-// formatInterface formats any supported value as a string,
-// but returns an error for unsupported.
-func formatInterface(value interface{}) (string, error) {
-	return formatAtom(reflect.ValueOf(value))
 }
 
 // formatAtom formats a built-in value without inspecting its internal structure.
