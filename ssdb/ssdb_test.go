@@ -245,25 +245,65 @@ func TestToString(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Keys failed, err:%v\n", err)
 	}
-	t.Logf("Keys failed, keys:%v\n", keys)
+	t.Logf("Keys result, keys:%v\n", keys)
 
 	keys, err = c.Rkeys("", "", 1000)
 	if err != nil {
 		t.Fatalf("Rkeys failed, err:%v\n", err)
 	}
-	t.Logf("Rkeys failed, keys:%v\n", keys)
+	t.Logf("Rkeys result, keys:%v\n", keys)
 
-	kvs, err := c.Scan("", "", 1000)
+	om, err := c.Scan("", "", 1000)
 	if err != nil {
 		t.Fatalf("Scan failed, err:%v\n", err)
 	}
-	t.Logf("Scan failed, kvs:%v\n", kvs)
-
-	kvs, err = c.Rscan("", "", 1000)
-	if err != nil {
-		t.Fatalf("Rscan failed, err:%v\n", kvs)
+	t.Logf("Scan result, keys:%v\n", om.Keys())
+	t.Logf("Scan result, vals:%v\n", om.Values())
+	t.Logf("Scan result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Scan result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Scan failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Scan failed, Lookup(%v)=%q != %q", k, val, v)
+		}
 	}
-	t.Logf("Rscan failed, kvs:%v\n", kvs)
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Scan result, Next():%q %q\n", k, v)
+		}
+	}
+
+	om, err = c.Rscan("", "", 1000)
+	if err != nil {
+		t.Fatalf("Rscan failed, err:%v\n", err)
+	}
+	t.Logf("Rscan result, keys:%v\n", om.Keys())
+	t.Logf("Rscan result, vals:%v\n", om.Values())
+	t.Logf("Rscan result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Rscan result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Rscan failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Rscan failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Rscan result, Next():%q %q\n", k, v)
+		}
+	}
 
 	ret, err = c.MultiSet("a", 1, "b", 2, "c", 4)
 	if err != nil {

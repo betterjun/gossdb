@@ -214,15 +214,15 @@ Parameters
     keyEnd - The upper bound(inclusive) of keys to be returned, empty string means +inf(no limit).
     limit - Up to that many pairs will be returned.
 Return Value
-	An associative array containing the key-value pairs.
+	An associative array containing the key-value pairs. Like [k1 v1 k2 v2 ...]
 */
-func (c *Client) Scan(keyStart, keyEnd string, limit int) ([]string, error) {
-	return c.doReturnStringSlice("scan", keyStart, keyEnd, limit)
+func (c *Client) Scan(keyStart, keyEnd string, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("scan", keyStart, keyEnd, limit)
 }
 
 // Rscan works likely Scan, but in reverse order.
-func (c *Client) Rscan(keyStart, keyEnd string, limit int) ([]string, error) {
-	return c.doReturnStringSlice("rscan", keyStart, keyEnd, limit)
+func (c *Client) Rscan(keyStart, keyEnd string, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("rscan", keyStart, keyEnd, limit)
 }
 
 /*
@@ -360,7 +360,7 @@ func (c *Client) doReturnStringSlice(args ...interface{}) ([]string, error) {
 	}
 }
 
-func (c *Client) doReturnStringMap(args ...interface{}) (map[string]string, error) {
+func (c *Client) doReturnStringMap(args ...interface{}) (OrderedMap, error) {
 	err := c.send(args)
 	if err != nil {
 		return nil, err
@@ -379,12 +379,7 @@ func (c *Client) doReturnStringMap(args ...interface{}) (map[string]string, erro
 		return nil, fmt.Errorf(resp[0])
 	default:
 		if resp[0] == "ok" {
-			kv := resp[1:]
-			m := make(map[string]string)
-			for i := 0; i < len(kv); i = i + 2 {
-				m[kv[i]] = kv[i+1]
-			}
-			return m, nil
+			return NewMap(resp[1:]), nil
 		} else {
 			return nil, fmt.Errorf(resp[0])
 		}
@@ -431,7 +426,6 @@ func (c *Client) send(args []interface{}) error {
 					return err
 				}
 				s = v
-
 				buf.WriteString(fmt.Sprintf("%d", len(s)))
 				buf.WriteByte('\n')
 				buf.WriteString(s)
