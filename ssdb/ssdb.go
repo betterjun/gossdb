@@ -257,6 +257,58 @@ func (c *Client) MultiDel(keys ...interface{}) (int64, error) {
 	return c.doReturnInt("multi_del", keys)
 }
 
+// For hash map operations.
+/*
+Hset sets the string value in argument as value of the key of a hashmap.
+Parameters
+    name - The name of the hashmap
+    key - The key of the key-value pair in the hashmap
+    value - The value of the key-value pair in the hashmap
+Return Value
+	Returns 1 if key is a new key in the hashmap and value is set, else returns 0.
+*/
+func (c *Client) Hset(name, key string, value interface{}) (int64, error) {
+	return c.doReturnInt("hset", name, key, value)
+}
+
+/*
+Hget gets the value related to the specified key of a hashmap.
+Parameters
+    name - The name of the hashmap
+    key - The key of the key-value pair in the hashmap
+Return Value
+	Return the value to the key, if the key does not exists, return not_found Status Code.
+*/
+func (c *Client) Hget(name, key string) (string, error) {
+	return c.doReturnString("hget", name, key)
+}
+
+// Hdel deletes specified key of a hashmap.
+// If the key exists, return 1, otherwise return 0.
+func (c *Client) Hdel(name, key string) (int64, error) {
+	return c.doReturnInt("hdel", name, key)
+}
+
+/*
+Hincr increases the number stored at key in a hashmap by num. The num argument could be a negative integer.
+The old number is first converted to an integer before increment, assuming it was stored as literal integer.
+Parameters
+    name - the name of the hashmap
+    key - The key of the key-value pair in the hashmap
+    num - Optional, must be a signed integer, default is 1
+Return Value
+	The new value. If the old value cannot be converted to an integer, returns error Status Code.
+*/
+func (c *Client) Hincr(name, key string, num int) (int64, error) {
+	return c.doReturnInt("hincr", name, key, num)
+}
+
+// Hexists verifies if the specified key exists in a hashmap.
+// If the key exists, return 1, otherwise return 0.
+func (c *Client) Hexists(name, key string) (int64, error) {
+	return c.doReturnInt("hexists", name, key)
+}
+
 func (c *Client) doReturn(args ...interface{}) error {
 	err := c.send(args)
 	if err != nil {

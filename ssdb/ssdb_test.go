@@ -1,14 +1,26 @@
 package ssdb
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
 
-//"github.com/betterjun/gossdb/ssdb"
+var (
+	ServerAddr = "192.168.254.22"
+	ServerPort = 8888
+	Password   = "CreateSessionResponseAtDecode-longlong"
+)
 
-func TestToString(t *testing.T) {
-	p, err := NewPool("192.168.254.22", 8888, "CreateSessionResponseAtDecode-longlong", 100)
+func newPool() (*Pool, error) {
+	if ServerAddr == "" || ServerPort == 0 {
+		return nil, fmt.Errorf("server not configured")
+	}
+	return NewPool(ServerAddr, ServerPort, Password, 100)
+}
+
+func TestKV(t *testing.T) {
+	p, err := newPool()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -335,6 +347,94 @@ func TestToString(t *testing.T) {
 	}
 	if len(vals) != 4 {
 		t.Fatalf("MultiGet result, expected:%v, got:%v\n", 4, len(vals))
+	}
+
+	p.Release(c)
+}
+
+func TestHashmap(t *testing.T) {
+	p, err := newPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := p.Get()
+
+	var name = "hm"
+	var key = "gossdb"
+	var value = "value \t\t\tfor test\r\nsecond line"
+	ret, err := c.Hset(name, key, value)
+	if err != nil {
+		t.Fatalf("Hset failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Hset failed, expect:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.Hset(name, key, value)
+	if err != nil {
+		t.Fatalf("Hset failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Hset failed, expect:%v, got:%v\n", 0, ret)
+	}
+
+	v, err := c.Hget(name, key)
+	if err != nil {
+		t.Fatalf("Hget failed, err:%v\n", err)
+	}
+	if v != value {
+		t.Fatalf("Hget failed, expected:%v, got:%v\n", value, v)
+	}
+
+	ret, err = c.Hexists(name, key)
+	if err != nil {
+		t.Fatalf("Hexists failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Hexists failed, expect:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.Hdel(name, key)
+	if err != nil {
+		t.Fatalf("Hdel failed, err:%v\n", err)
+	}
+
+	ret, err = c.Hexists(name, key)
+	if err != nil {
+		t.Fatalf("Hexists failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Hexists failed, expect:%v, got:%v\n", 0, ret)
+	}
+
+	ret, err = c.Hexists("not-existed-hm", key)
+	if err != nil {
+		t.Fatalf("Hexists failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Hexists failed, expect:%v, got:%v\n", 0, ret)
+	}
+
+	v, err = c.Hget(name, key)
+	if err != nil {
+		t.Logf("Hget failed, err:%v\n", err)
+	} else {
+		t.Fatalf("Hget key after deleted, value:%v\n", v)
+	}
+
+	ret, err = c.Hincr(name, key, 2)
+	if err != nil {
+		t.Fatalf("Hincr failed, err:%v\n", err)
+	} else {
+		t.Logf("Hincr key after deleted, value:%v\n", ret)
+	}
+
+	v, err = c.Hget(name, key)
+	if err != nil {
+		t.Logf("Hget failed, err:%v\n", err)
+	} else {
+		t.Logf("Hget key after Hincr, value:%v\n", v)
 	}
 
 	p.Release(c)
