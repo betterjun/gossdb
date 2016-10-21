@@ -12,7 +12,13 @@ type OrderedMap interface {
 	Reset()
 }
 
-func NewMap(s []string) OrderedMap {
+type orderedMap struct {
+	keys   []string
+	values []string
+	iter   int
+}
+
+func newMap(s []string) OrderedMap {
 	om := &orderedMap{}
 	for i := 0; i < len(s); i = i + 2 {
 		om.keys = append(om.keys, s[i])
@@ -20,12 +26,6 @@ func NewMap(s []string) OrderedMap {
 	}
 
 	return om
-}
-
-type orderedMap struct {
-	keys   []string
-	values []string
-	iter   int
 }
 
 func (om *orderedMap) Keys() []string {
