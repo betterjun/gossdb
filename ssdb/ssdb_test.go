@@ -437,5 +437,57 @@ func TestHashmap(t *testing.T) {
 		t.Logf("Hget key after Hincr, value:%v\n", v)
 	}
 
+	ret, err = c.Hsize(name)
+	if err != nil {
+		t.Fatalf("Hsize failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Hsize failed, expect:%v, got:%v\n", 1, ret)
+	}
+
+	slice, err := c.Hlist("", "", 100)
+	if err != nil {
+		t.Fatalf("Hlist failed, err:%v\n", err)
+	}
+	t.Logf("Hlist result, %v\n", slice)
+
+	slice, err = c.Hrlist("", "", 100)
+	if err != nil {
+		t.Fatalf("Hrlist failed, err:%v\n", err)
+	}
+	t.Logf("Hrlist result, %v\n", slice)
+
+	slice, err = c.Hkeys(name, "", "", 100)
+	if err != nil {
+		t.Fatalf("Hkeys failed, err:%v\n", err)
+	}
+	t.Logf("Hkeys result, %v\n", slice)
+
+	om, err := c.Hgetall(name)
+	if err != nil {
+		t.Fatalf("Hgetall failed, err:%v\n", err)
+	}
+	t.Logf("Hgetall result, keys:%v\n", om.Keys())
+	t.Logf("Hgetall result, vals:%v\n", om.Values())
+	t.Logf("Hgetall result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Hgetall result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Hgetall failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Hgetall failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Hgetall result, Next():%q %q\n", k, v)
+		}
+	}
+
 	p.Release(c)
 }

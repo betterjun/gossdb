@@ -309,6 +309,30 @@ func (c *Client) Hexists(name, key string) (int64, error) {
 	return c.doReturnInt("hexists", name, key)
 }
 
+// Hsize returns the number of key-value pairs in the hashmap.
+func (c *Client) Hsize(name string) (int64, error) {
+	return c.doReturnInt("hsize", name)
+}
+
+// Hlist lists hashmap names in range (name_start, name_end].
+func (c *Client) Hlist(nameStart, nameEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("hlist", nameStart, nameEnd, limit)
+}
+
+// Hrlist works like Hlist, but in reverse order.
+func (c *Client) Hrlist(nameStart, nameEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("hrlist", nameStart, nameEnd, limit)
+}
+
+// Hrlist works like Hlist, but in reverse order.
+func (c *Client) Hkeys(name, keyStart, keyEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("hkeys", name, keyStart, keyEnd, limit)
+}
+
+func (c *Client) Hgetall(name string) (OrderedMap, error) {
+	return c.doReturnStringMap("hgetall", name)
+}
+
 func (c *Client) doReturn(args ...interface{}) error {
 	err := c.send(args)
 	if err != nil {
