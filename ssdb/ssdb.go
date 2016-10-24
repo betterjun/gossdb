@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Client is the agent for server, executing command by calling the methods of this struct.
 type Client struct {
 	sock    *net.TCPConn
 	recvBuf bytes.Buffer
@@ -314,7 +315,7 @@ func (c *Client) Hsize(name string) (int64, error) {
 	return c.doReturnInt("hsize", name)
 }
 
-// Hlist lists hashmap names in range (name_start, name_end].
+// Hlist lists hashmap names in range (nameStart, nameEnd].
 func (c *Client) Hlist(nameStart, nameEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("hlist", nameStart, nameEnd, limit)
 }
@@ -362,8 +363,8 @@ Parameters
 Return Value
 	Number of keys are set.
 */
-func (c *Client) MultiHset(args ...interface{}) (int64, error) {
-	return c.doReturnInt("multi_hset", args)
+func (c *Client) MultiHset(name string, args ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_hset", name, args)
 }
 
 /*
@@ -373,8 +374,8 @@ Parameters
 Return Value
 	Key-value list.
 */
-func (c *Client) MultiHget(keys ...interface{}) ([]string, error) {
-	return c.doReturnStringSlice("multi_hget", keys)
+func (c *Client) MultiHget(name string, keys ...interface{}) ([]string, error) {
+	return c.doReturnStringSlice("multi_hget", name, keys)
 }
 
 /*
@@ -384,8 +385,8 @@ Parameters
 Return Value
 	Number of keys are deleted.
 */
-func (c *Client) MultiHdel(keys ...interface{}) (int64, error) {
-	return c.doReturnInt("multi_hdel", keys)
+func (c *Client) MultiHdel(name string, keys ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_hdel", name, keys)
 }
 
 // For hash map operations.
@@ -445,7 +446,7 @@ func (c *Client) Zsize(name string) (int64, error) {
 	return c.doReturnInt("zsize", name)
 }
 
-// Zlist lists zset names in range (name_start, name_end].
+// Zlist lists zset names in range (nameStart, nameEnd].
 func (c *Client) Zlist(nameStart, nameEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("zlist", nameStart, nameEnd, limit)
 }
@@ -603,8 +604,8 @@ Parameters
 Return Value
 	Number of keys are set.
 */
-func (c *Client) MultiZset(args ...interface{}) (int64, error) {
-	return c.doReturnInt("multi_zset", args)
+func (c *Client) MultiZset(name string, args ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_zset", name, args)
 }
 
 /*
@@ -614,8 +615,8 @@ Parameters
 Return Value
 	Key-value list.
 */
-func (c *Client) MultiZget(keys ...interface{}) ([]string, error) {
-	return c.doReturnStringSlice("multi_zget", keys)
+func (c *Client) MultiZget(name string, keys ...interface{}) ([]string, error) {
+	return c.doReturnStringSlice("multi_zget", name, keys)
 }
 
 /*
@@ -625,8 +626,169 @@ Parameters
 Return Value
 	Number of keys are deleted.
 */
-func (c *Client) MultiZdel(keys ...interface{}) (int64, error) {
-	return c.doReturnInt("multi_zdel", keys)
+func (c *Client) MultiZdel(name string, keys ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_zdel", name, keys)
+}
+
+/*
+QpushFront adds one or more than one element to the head of the queue.
+Parameters
+    name val1 val2 ...
+Return Value
+	The length of the list after the push operation, false on error.
+*/
+func (c *Client) QpushFront(name string, values ...interface{}) (int64, error) {
+	return c.doReturnInt("qpush_front", name, values)
+}
+
+/*
+QpushBack adds one or more than one element to the tail of the queue.
+Parameters
+    name val1 val2 ...
+Return Value
+	The length of the list after the push operation, false on error.
+*/
+func (c *Client) QpushBack(name string, values ...interface{}) (int64, error) {
+	return c.doReturnInt("qpush_back", name, values)
+}
+
+/*
+QpopFront pops out one or more elements from the head of a queue.
+Parameters
+    name -
+    size - Optional, number of elements to pop, default is 1
+Return Value
+	When size is not specified or less than 2, returns null if queue empty, otherwise the item removed.
+	When size is specified and greater than or equal to 2, returns an array of elements removed.
+*/
+func (c *Client) QpopFront(name string, size int) ([]string, error) {
+	return c.doReturnStringSlice("qpop_front", name, size)
+}
+
+/*
+QpopBack pops out one or more elements from the back of a queue.
+Parameters
+    name -
+    size - Optional, number of elements to pop, default is 1
+Return Value
+	When size is not specified or less than 2, returns null if queue empty, otherwise the item removed.
+	When size is specified and greater than or equal to 2, returns an array of elements removed.
+*/
+func (c *Client) QpopBack(name string, size int) ([]string, error) {
+	return c.doReturnStringSlice("qpop_back", name, size)
+}
+
+// Qpush is alias of QpushBack.
+func (c *Client) Qpush(name string, values ...interface{}) (int64, error) {
+	return c.QpushFront(name, values...)
+}
+
+// Qpop is alias of QpopFront.
+func (c *Client) Qpop(name string, size int) ([]string, error) {
+	return c.QpopFront(name, size)
+}
+
+// Qfront returns the first element of a queue.
+// It returns null if queue empty, otherwise the item returned.
+func (c *Client) Qfront(name string) (string, error) {
+	return c.doReturnString("qfront", name)
+}
+
+// Qback returns the last element of a queue.
+// It returns null if queue empty, otherwise the item returned.
+func (c *Client) Qback(name string) (string, error) {
+	return c.doReturnString("qback", name)
+}
+
+/*
+Qsize returns the number of items in the queue.
+Return Value
+	false on error, otherwise an integer, 0 if the queue does not exist.
+*/
+func (c *Client) Qsize(name string) (int64, error) {
+	return c.doReturnInt("qsize", name)
+}
+
+// Qclear clears the queue.
+func (c *Client) Qclear(name string) (int64, error) {
+	return c.doReturnInt("qclear", name)
+}
+
+/*
+Qget returns the element at the specified index(position). 0 the first element, 1 the second ... -1 the last element.
+Parameters
+    name -
+    index - negative intexes accepted.
+Return Value
+	false on error, null if no element corresponds to this index, otherwise the item returned.
+*/
+func (c *Client) Qget(name string, index int) (string, error) {
+	return c.doReturnString("qget", name, index)
+}
+
+/*
+Qset sets the list element at index to value. An error is returned for out of range indexes.
+Parameters
+    name -
+    index - negative intexes accepted.
+    val -
+Return Value
+	false on error, other values indicate OK.
+*/
+func (c *Client) Qset(name string, index int, value interface{}) error {
+	return c.doReturn("qset", name, index, value)
+}
+
+/*
+Qrange returns a portion of elements from the queue at the specified range [offset, offset + limit].
+Return Value
+	false on error, otherwise an array containing items.
+*/
+func (c *Client) Qrange(name string, offset, limit int) ([]string, error) {
+	return c.doReturnStringSlice("qrange", name, offset, limit)
+}
+
+/*
+Qslice returns a portion of elements from the queue at the specified range [begin, end]. begin and end could be negative.
+Return Value
+	false on error, otherwise an array containing items.
+*/
+func (c *Client) Qslice(name string, begin, end int) ([]string, error) {
+	return c.doReturnStringSlice("qslice", name, begin, end)
+}
+
+/*
+QtrimFront removes multiple elements from the head of a queue.
+Parameters
+    name -
+    size - Number of elements to delete.
+Return Value
+	false on error. Return the number of elements removed.
+*/
+func (c *Client) QtrimFront(name string, size int) (int64, error) {
+	return c.doReturnInt("qtrim_front", name, size)
+}
+
+/*
+QtrimBack removes multiple elements from the tail of a queue.
+Parameters
+    name -
+    size - Number of elements to delete.
+Return Value
+	false on error. Return the number of elements removed.
+*/
+func (c *Client) QtrimBack(name string, size int) (int64, error) {
+	return c.doReturnInt("qtrim_back", name, size)
+}
+
+// Qlist lists quene names in range (nameStart, nameEnd].
+func (c *Client) Qlist(nameStart, nameEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("qlist", nameStart, nameEnd, limit)
+}
+
+// Qrlist works like Qlist, but in reverse order.
+func (c *Client) Qrlist(nameStart, nameEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("qrlist", nameStart, nameEnd, limit)
 }
 
 func (c *Client) doReturn(args ...interface{}) error {

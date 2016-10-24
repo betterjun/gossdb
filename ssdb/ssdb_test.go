@@ -3,6 +3,7 @@ package ssdb
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 var (
@@ -18,7 +19,6 @@ func newPool() (*Pool, error) {
 	return NewPool(ServerAddr, ServerPort, Password, 100)
 }
 
-/*
 func TestKV(t *testing.T) {
 	p, err := newPool()
 	if err != nil {
@@ -583,7 +583,6 @@ func TestHashmap(t *testing.T) {
 
 	p.Release(c)
 }
-*/
 
 func TestSorted(t *testing.T) {
 	p, err := newPool()
@@ -933,6 +932,243 @@ func TestSorted(t *testing.T) {
 	}
 	if ret != 1 {
 		t.Fatalf("Zremrangebyscore result, expected:%v, got:%v\n", 1, ret)
+	}
+
+	p.Release(c)
+}
+
+func TestQueue(t *testing.T) {
+	p, err := newPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := p.Get()
+
+	var name = "queue-test"
+	var name2 string = "queue2"
+	values := []interface{}{"a", "b", "hello", "ssdb"}
+	var expected int64 = int64(len(values))
+
+	_, err = c.Qclear(name)
+	if err != nil {
+		t.Fatalf("Qclear failed, err:%v\n", err)
+	}
+	_, err = c.Qclear(name2)
+	if err != nil {
+		t.Fatalf("Qclear failed, err:%v\n", err)
+	}
+
+	ret, err := c.QpushFront(name, values...)
+	if err != nil {
+		t.Fatalf("QpushFront failed, err:%v\n", err)
+	}
+	if ret != expected {
+		t.Fatalf("QpushFront failed, expected:%v, got:%v\n", expected, ret)
+	}
+
+	vs, err := c.QpopFront(name, len(values))
+	if err != nil {
+		t.Fatalf("QpopFront failed, err:%v\n", err)
+	}
+	if len(vs) != len(values) {
+		t.Fatalf("QpopFront failed, expected:%v, got:%v\n", expected, len(vs))
+	}
+
+	ret, err = c.QpushBack(name, values...)
+	if err != nil {
+		t.Fatalf("QpushBack failed, err:%v\n", err)
+	}
+	if ret != expected {
+		t.Fatalf("QpushBack failed, expected:%v, got:%v\n", expected, ret)
+	}
+
+	vs, err = c.QpopBack(name, len(values))
+	if err != nil {
+		t.Fatalf("QpopBack failed, err:%v\n", err)
+	}
+	if len(vs) != len(values) {
+		t.Fatalf("QpopBack failed, expected:%v, got:%v\n", expected, len(vs))
+	}
+
+	ret, err = c.Qpush(name, values...)
+	if err != nil {
+		t.Fatalf("Qpush failed, err:%v\n", err)
+	}
+	if ret != expected {
+		t.Fatalf("Qpush failed, expected:%v, got:%v\n", len(values), ret)
+	}
+
+	vs, err = c.Qpop(name, len(values))
+	if err != nil {
+		t.Fatalf("Qpop failed, err:%v\n", err)
+	}
+	if len(vs) != len(values) {
+		t.Fatalf("Qpop failed, expected:%v, got:%v\n", len(values), len(vs))
+	}
+
+	// operations on empty queue
+	ret, err = c.Qsize(name)
+	if err != nil {
+		t.Fatalf("Qsize failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Qsize failed, expected:%v, got:%v\n", 0, ret)
+	}
+
+	_, err = c.Qfront(name)
+	if err != nil {
+		t.Logf("Qfront failed, err:%v\n", err)
+	}
+	_, err = c.Qback(name)
+	if err != nil {
+		t.Logf("Qback failed, err:%v\n", err)
+	}
+
+	_, err = c.Qget(name, 0)
+	if err != nil {
+		t.Logf("Qget failed, err:%v\n", err)
+	}
+	err = c.Qset(name, 0, "p2")
+	if err != nil {
+		t.Logf("Qset failed, err:%v\n", err)
+	}
+
+	ret, err = c.QpushBack(name, values...)
+	if err != nil {
+		t.Fatalf("QpushBack failed, err:%v\n", err)
+	}
+	if ret != expected {
+		t.Fatalf("QpushBack failed, expected:%v, got:%v\n", len(values), ret)
+	}
+
+	// operations on queue with data
+	ret, err = c.Qsize(name)
+	if err != nil {
+		t.Fatalf("Qsize failed, err:%v\n", err)
+	}
+	if ret != expected {
+		t.Fatalf("Qsize failed, expected:%v, got:%v\n", expected, ret)
+	}
+
+	v, err := c.Qfront(name)
+	if err != nil {
+		t.Fatalf("Qfront failed, err:%v\n", err)
+	}
+	if v != values[0] {
+		t.Fatalf("Qfront failed, expected:%v, got:%v\n", values[0], v)
+	}
+	v, err = c.Qback(name)
+	if err != nil {
+		t.Fatalf("Qback failed, err:%v\n", err)
+	}
+	if v != values[len(values)-1] {
+		t.Fatalf("Qback failed, expected:%v, got:%v\n", values[len(values)-1], v)
+	}
+
+	v, err = c.Qget(name, 0)
+	if err != nil {
+		t.Fatalf("Qget failed, err:%v\n", err)
+	}
+	if v != values[0] {
+		t.Fatalf("Qget failed, expected:%v, got:%v\n", values[0], v)
+	}
+	err = c.Qset(name, 0, "p2")
+	if err != nil {
+		t.Fatalf("Qset failed, err:%v\n", err)
+	}
+
+	ret, err = c.Qclear(name)
+	if err != nil {
+		t.Fatalf("Qclear failed, err:%v\n", err)
+	}
+	if ret != expected {
+		t.Fatalf("Qclear failed, expected:%v, got:%v\n", expected, ret)
+	}
+
+	ret, err = c.QpushBack(name, values...)
+	if err != nil {
+		t.Fatalf("QpushBack failed, err:%v\n", err)
+	}
+	if ret != expected {
+		t.Fatalf("QpushBack failed, expected:%v, got:%v\n", len(values), ret)
+	}
+
+	vs, err = c.Qrange(name, 0, 1)
+	if err != nil {
+		t.Fatalf("Qrange failed, err:%v\n", err)
+	}
+	if len(vs) != 1 {
+		t.Fatalf("Qrange failed, expected:%v, got:%v\n", 1, len(vs))
+	}
+	if vs[0] != values[0] {
+		t.Fatalf("Qrange failed, expected:%v, got:%v\n", values[0], vs[0])
+	}
+
+	vs, err = c.Qslice(name, 0, 1)
+	if err != nil {
+		t.Fatalf("Qslice failed, err:%v\n", err)
+	}
+	if len(vs) != 2 {
+		t.Fatalf("Qslice failed, expected:%v, got:%v\n", 2, len(vs))
+	}
+	if vs[0] != values[0] {
+		t.Fatalf("Qrange failed, expected:%v, got:%v\n", values[0], vs[0])
+	}
+	if vs[1] != values[1] {
+		t.Fatalf("Qrange failed, expected:%v, got:%v\n", values[1], vs[1])
+	}
+
+	ret, err = c.QtrimFront(name, 1)
+	if err != nil {
+		t.Fatalf("QtrimFront failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("QtrimFront failed, expected:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.QtrimBack(name, 2)
+	if err != nil {
+		t.Fatalf("QtrimBack failed, err:%v\n", err)
+	}
+	if ret != 2 {
+		t.Fatalf("QtrimBack failed, expected:%v, got:%v\n", 2, ret)
+	}
+
+	ret, err = c.QpushBack(name2, values...)
+	if err != nil {
+		t.Fatalf("QpushBack failed, err:%v\n", err)
+	}
+	if ret != expected {
+		t.Fatalf("QpushBack failed, expected:%v, got:%v\n", len(values), ret)
+	}
+
+	vs, err = c.Qlist("", "", 100)
+	if err != nil {
+		t.Fatalf("Qlist failed, err:%v\n", err)
+	}
+	if len(vs) != 2 {
+		t.Fatalf("Qlist failed, expected:%v, got:%v, %v\n", 2, len(vs), vs)
+	}
+	if vs[0] != name {
+		t.Fatalf("Qlist failed, expected:%v, got:%v\n", name, vs[0])
+	}
+	if vs[1] != name2 {
+		t.Fatalf("Qlist failed, expected:%v, got:%v\n", name2, vs[1])
+	}
+
+	vs, err = c.Qrlist("", "", 100)
+	if err != nil {
+		t.Fatalf("Qrlist failed, err:%v\n", err)
+	}
+	if len(vs) != 2 {
+		t.Fatalf("Qrlist failed, expected:%v, got:%v\n", 2, len(vs))
+	}
+	if vs[0] != name2 {
+		t.Fatalf("Qrlist failed, expected:%v, got:%v\n", name2, vs[0])
+	}
+	if vs[1] != name {
+		t.Fatalf("Qrlist failed, expected:%v, got:%v\n", name, vs[1])
 	}
 
 	p.Release(c)
