@@ -236,7 +236,7 @@ func (c *Client) MultiSet(args ...interface{}) (int64, error) {
 }
 
 /*
-MultiSet get the values related to the specified multiple keys.
+MultiGet get the values related to the specified multiple keys.
 Parameters
     key1 key2 ...
 Return Value
@@ -247,7 +247,7 @@ func (c *Client) MultiGet(keys ...interface{}) ([]string, error) {
 }
 
 /*
-MultiSet deletes specified keys.
+MultiDel deletes specified keys.
 Parameters
     key1 key2 ...
 Return Value
@@ -329,8 +329,63 @@ func (c *Client) Hkeys(name, keyStart, keyEnd string, limit int) ([]string, erro
 	return c.doReturnStringSlice("hkeys", name, keyStart, keyEnd, limit)
 }
 
+// Hgetall returns the whole hash, as an array of strings indexed by strings.
 func (c *Client) Hgetall(name string) (OrderedMap, error) {
 	return c.doReturnStringMap("hgetall", name)
+}
+
+/*
+Hscan lists key-value pairs of a hashmap with keys in range (key_start, key_end].
+For more details, refer Scan.
+*/
+func (c *Client) Hscan(name, keyStart, keyEnd string, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("hscan", name, keyStart, keyEnd, limit)
+}
+
+// Hrscan works likely Hscan, but in reverse order.
+func (c *Client) Hrscan(name, keyStart, keyEnd string, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("hrscan", name, keyStart, keyEnd, limit)
+}
+
+/*
+Hclear deletes all keys in a hashmap.
+The number of keys deleted in that hashmap is returned.
+*/
+func (c *Client) Hclear(name string) (int64, error) {
+	return c.doReturnInt("hclear", name)
+}
+
+/*
+MultiHset sets multiple key-value pairs(kvs) of a hashmap in one method call.
+Parameters
+    name key1 value1 key2 value2 ...
+Return Value
+	Number of keys are set.
+*/
+func (c *Client) MultiHset(args ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_hset", args)
+}
+
+/*
+MultiHget get the values related to the specified multiple keys of a hashmap.
+Parameters
+    name key1 key2 ...
+Return Value
+	Key-value list.
+*/
+func (c *Client) MultiHget(keys ...interface{}) ([]string, error) {
+	return c.doReturnStringSlice("multi_hget", keys)
+}
+
+/*
+MultiHdel deletes specified multiple keys in a hashmap.
+Parameters
+    name key1 key2 ...
+Return Value
+	Number of keys are deleted.
+*/
+func (c *Client) MultiHdel(keys ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_hdel", keys)
 }
 
 func (c *Client) doReturn(args ...interface{}) error {
@@ -373,7 +428,11 @@ func (c *Client) doReturnInt(args ...interface{}) (int64, error) {
 	case 0:
 		return 0, fmt.Errorf("no response received")
 	case 1:
-		return 0, fmt.Errorf(resp[0])
+		if resp[0] == "ok" {
+			return 0, fmt.Errorf("no data found")
+		} else {
+			return 0, fmt.Errorf(resp[0])
+		}
 	default:
 		if resp[0] == "ok" {
 			return strconv.ParseInt(resp[1], 10, 64)
@@ -399,7 +458,11 @@ func (c *Client) doReturnString(args ...interface{}) (string, error) {
 	case 0:
 		return "", fmt.Errorf("no response received")
 	case 1:
-		return "", fmt.Errorf(resp[0])
+		if resp[0] == "ok" {
+			return "", fmt.Errorf("no data found")
+		} else {
+			return "", fmt.Errorf(resp[0])
+		}
 	default:
 		if resp[0] == "ok" {
 			return strings.Join(resp[1:], ""), nil
@@ -425,7 +488,12 @@ func (c *Client) doReturnStringSlice(args ...interface{}) ([]string, error) {
 	case 0:
 		return nil, fmt.Errorf("no response received")
 	case 1:
-		return nil, fmt.Errorf(resp[0])
+		if resp[0] == "ok" {
+			return nil, fmt.Errorf("no data found")
+		} else {
+			return nil, fmt.Errorf(resp[0])
+		}
+
 	default:
 		if resp[0] == "ok" {
 			return resp[1:], nil
@@ -451,7 +519,11 @@ func (c *Client) doReturnStringMap(args ...interface{}) (OrderedMap, error) {
 	case 0:
 		return nil, fmt.Errorf("no response received")
 	case 1:
-		return nil, fmt.Errorf(resp[0])
+		if resp[0] == "ok" {
+			return nil, fmt.Errorf("no data found")
+		} else {
+			return nil, fmt.Errorf(resp[0])
+		}
 	default:
 		if resp[0] == "ok" {
 			return newMap(resp[1:]), nil

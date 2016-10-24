@@ -489,5 +489,97 @@ func TestHashmap(t *testing.T) {
 		}
 	}
 
+	ret, err = c.MultiHset(name, "a", 1, "b", 2, "c", 4)
+	if err != nil {
+		t.Fatalf("MultiHset failed, err:%v\n", err)
+	}
+	if ret != 3 {
+		t.Fatalf("MultiHset result, expected:%v, got:%v\n", 3, ret)
+	}
+
+	om, err = c.Hscan(name, "", "", 1000)
+	if err != nil {
+		t.Fatalf("Hscan failed, err:%v\n", err)
+	}
+	t.Logf("Hscan result, keys:%v\n", om.Keys())
+	t.Logf("Hscan result, vals:%v\n", om.Values())
+	t.Logf("Hscan result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Hscan result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Hscan failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Hscan failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Hscan result, Next():%q %q\n", k, v)
+		}
+	}
+
+	om, err = c.Hrscan(name, "", "", 1000)
+	if err != nil {
+		t.Fatalf("Hrscan failed, err:%v\n", err)
+	}
+	t.Logf("Hrscan result, keys:%v\n", om.Keys())
+	t.Logf("Hrscan result, vals:%v\n", om.Values())
+	t.Logf("Hrscan result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Hrscan result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Hrscan failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Hrscan failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Hrscan result, Next():%q %q\n", k, v)
+		}
+	}
+
+	vals, err := c.MultiHget(name, "a", "b", "c")
+	if err != nil {
+		t.Fatalf("MultiHget failed, err:%v\n", err)
+	}
+	if len(vals) != 6 {
+		t.Fatalf("MultiHget result, expected:%v, got:%v\n", 6, len(vals))
+	}
+
+	ret, err = c.MultiHdel(name, "a")
+	if err != nil {
+		t.Fatalf("MultiHdel failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("MultiHdel result, expected:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.Hclear(name)
+	if err != nil {
+		t.Fatalf("Hclear failed, err:%v\n", err)
+	}
+	if ret != 3 {
+		t.Fatalf("Hclear result, expected:%v, got:%v\n", 3, ret)
+	}
+
+	vals, err = c.MultiHget(name, "a", "b", "c")
+	if err != nil && err.Error() != "no data found" {
+		t.Fatalf("MultiHget failed, err:%v\n", err)
+	}
+	if len(vals) != 0 {
+		t.Fatalf("MultiHget result, expected:%v, got:%v\n", 0, len(vals))
+	}
+
 	p.Release(c)
 }
