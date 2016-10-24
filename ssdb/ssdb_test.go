@@ -637,6 +637,16 @@ func TestSorted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Zdel failed, err:%v\n", err)
 	}
+	if ret != 1 {
+		t.Fatalf("Zdel failed, expect:%v, got:%v\n", 1, ret)
+	}
+	ret, err = c.Zdel(name, key)
+	if err != nil {
+		t.Fatalf("Zdel failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Zdel failed, expect:%v, got:%v\n", 0, ret)
+	}
 
 	ret, err = c.Zexists(name, key)
 	if err != nil {

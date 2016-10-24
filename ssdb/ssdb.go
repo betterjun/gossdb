@@ -403,30 +403,29 @@ func (c *Client) Zset(name, key string, score int64) (int64, error) {
 }
 
 /*
-Hget gets the score related to the specified key of a zset
+Zget gets the score related to the specified key of a zset
 Parameters
     name - The name of the zset
     key - The key of the key-score pair in the zset
 Return Value
-	Return the value to the key, if the key does not exists, return not_found Status Code.
-	Return null if key not found, false on error, otherwise, the score related to this key is returned.
+	Return the score to the key, if the key does not exists, return not_found Status Code.
 */
 func (c *Client) Zget(name, key string) (int64, error) {
 	return c.doReturnInt("zget", name, key)
 }
 
-// Hdel deletes specified key of a hashmap.
+// Zdel deletes specified key of a zset.
 // If the key exists, return 1, otherwise return 0.
 func (c *Client) Zdel(name, key string) (int64, error) {
 	return c.doReturnInt("zdel", name, key)
 }
 
 /*
-Hincr increases the number stored at key in a hashmap by num. The num argument could be a negative integer.
+Zincr increases the number stored at key in a zset by num. The num argument could be a negative integer.
 The old number is first converted to an integer before increment, assuming it was stored as literal integer.
 Parameters
-    name - the name of the hashmap
-    key - The key of the key-value pair in the hashmap
+    name - the name of the zset
+    key - The key of the key-value pair in the zset
     num - Optional, must be a signed integer, default is 1
 Return Value
 	The new value. If the old value cannot be converted to an integer, returns error Status Code.
@@ -435,123 +434,110 @@ func (c *Client) Zincr(name, key string, num int) (int64, error) {
 	return c.doReturnInt("zincr", name, key, num)
 }
 
-// Hexists verifies if the specified key exists in a hashmap.
+// Zexists verifies if the specified key exists in a zset.
 // If the key exists, return 1, otherwise return 0.
 func (c *Client) Zexists(name, key string) (int64, error) {
 	return c.doReturnInt("zexists", name, key)
 }
 
-// Hsize returns the number of key-value pairs in the hashmap.
+// Zsize returns the number of key-value pairs in the zset.
 func (c *Client) Zsize(name string) (int64, error) {
 	return c.doReturnInt("zsize", name)
 }
 
-// Hlist lists hashmap names in range (name_start, name_end].
+// Zlist lists zset names in range (name_start, name_end].
 func (c *Client) Zlist(nameStart, nameEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("zlist", nameStart, nameEnd, limit)
 }
 
-// Hrlist works like Hlist, but in reverse order.
+// Zrlist works like Zlist, but in reverse order.
 func (c *Client) Zrlist(nameStart, nameEnd string, limit int) ([]string, error) {
 	return c.doReturnStringSlice("zrlist", nameStart, nameEnd, limit)
 }
 
-// Hrlist works like Hlist, but in reverse order.
+// Zkeys works like Zlist, but in reverse order.
 func (c *Client) Zkeys(name, keyStart string, scoreStart, scoreEnd int64, limit int) ([]string, error) {
 	return c.doReturnStringSlice("zkeys", name, keyStart, scoreStart, scoreEnd, limit)
 }
 
 /*
-Hscan lists key-value pairs of a hashmap with keys in range (key_start, key_end].
-For more details, refer Scan.
+Zscan lists key-value pairs of a zset.
+Return Values:
+	When the keyStart is empty, returns range (scoreStart, scoreEnd].
+	When the keyStart is not empty, returns range of kvs, and all fit the below condition:
+	((key.score==scoreStart && key>keyStart) || key.score>scoreStart) && key.score<=scoreEnd.
 */
 func (c *Client) Zscan(name, keyStart string, scoreStart, scoreEnd int64, limit int) (OrderedMap, error) {
 	return c.doReturnStringMap("zscan", name, keyStart, scoreStart, scoreEnd, limit)
 }
 
-// Hrscan works likely Hscan, but in reverse order.
+// Zrscan works likely Zscan, but in reverse order.
 func (c *Client) Zrscan(name, keyStart string, scoreStart, scoreEnd int64, limit int) (OrderedMap, error) {
 	return c.doReturnStringMap("zrscan", name, keyStart, scoreStart, scoreEnd, limit)
 }
 
 /*
-Description
-
-Important! This method may be extremly SLOW! May not be used in an online service.
-
-Returns the rank(index) of a given key in the specified sorted set, starting at 0 for the item with the smallest score. zrrank starts at 0 for the item with the largest score.
-Parameters
-
-    name - The name of the zset.
-    key -
-
-Return Value
-
-false on error, otherwise the rank(index) of a specified key, start at 0. null if not found.
+Zrank returns the rank(index) of a given key in the specified sorted set, starting at 0 for the item with the smallest score.
+Caution: Important! This method may be extremly SLOW! May not be used in an online service.
 */
 func (c *Client) Zrank(name, key string) (int64, error) {
 	return c.doReturnInt("zrank", name, key)
 }
 
-// Hrscan works likely Hscan, but in reverse order.
+// Zrrank works likely Zrank, but in reverse order.
+// Caution: Important! This method may be extremly SLOW! May not be used in an online service.
 func (c *Client) Zrrank(name, key string) (int64, error) {
 	return c.doReturnInt("zrrank", name, key)
 }
 
 /*
-Description
-
-Important! This method is SLOW for large offset!
-
-Returns a range of key-score pairs by index range [offset, offset + limit). Zrrange iterates in reverse order.
+Zrange returns a range of key-score pairs by index range [offset, offset + limit).
 Parameters
-
     name - The name of the zset.
     offset - Positive integer, the returned pairs will start at this offset.
     limit - Positive integer, up to this number of pairs will be returned.
-
 Return Value
-
-false on error, otherwise an array containing key-score pairs.
+	false on error, otherwise an array containing key-score pairs.
+Caution:
+	Important! This method is SLOW for large offset!
 */
 func (c *Client) Zrange(name string, offset, limit int) (OrderedMap, error) {
 	return c.doReturnStringMap("zrange", name, offset, limit)
 }
 
-// Hrscan works likely Hscan, but in reverse order.
+// Zrrange works likely Zrange, but in reverse order.
+// Caution: Important! This method is SLOW for large offset!
 func (c *Client) Zrrange(name string, offset, limit int) (OrderedMap, error) {
 	return c.doReturnStringMap("zrrange", name, offset, limit)
 }
 
 /*
-Hclear deletes all keys in a hashmap.
-The number of keys deleted in that hashmap is returned.
+Zclear deletes all keys in a zset.
+The number of keys deleted in that zset is returned.
 */
 func (c *Client) Zclear(name string) (int64, error) {
 	return c.doReturnInt("zclear", name)
 }
 
 /*
-Description
-
-Returns the number of elements of the sorted set stored at the specified key which have scores in the range [start,end].
+Zcount returns the number of elements of the sorted set stored at the specified key which have scores in the range [start,end].
 Parameters
-
     name - The name of the zset.
     start - The minimum score related to keys(inclusive), empty string means -inf(no limit).
     end - The maximum score related to keys(inclusive), empty string means +inf(no limit).
-
 Return Value
-
-false on error, or the number of keys in specified range.
+	false on error, or the number of keys in specified range.
 */
 func (c *Client) Zcount(name string, start, end int64) (int64, error) {
 	return c.doReturnInt("zcount", name, start, end)
 }
 
+// Zsum returns the sum of elements of the sorted set stored at the specified key which have scores in the range [start,end].
 func (c *Client) Zsum(name string, start, end int64) (int64, error) {
 	return c.doReturnInt("zsum", name, start, end)
 }
+
+// Zsum returns the average  of elements of the sorted set stored at the specified key which have scores in the range [start,end].
 func (c *Client) Zavg(name string, start, end int64) (float64, error) {
 	str, err := c.doReturnString("zavg", name, start, end)
 	if err != nil {
@@ -559,34 +545,59 @@ func (c *Client) Zavg(name string, start, end int64) (float64, error) {
 	}
 	return strconv.ParseFloat(str, 64)
 }
+
+/*
+Zremrangebyrank deletes the elements of the zset which have rank in the range [start,end].
+Parameters
+    name - The name of the zset.
+    start - inclusive, unsigned number.
+    end - inclusive, unsigned number.
+Return Value
+	false on error, or the number of deleted elements.
+*/
 func (c *Client) Zremrangebyrank(name string, start, end int64) (int64, error) {
 	return c.doReturnInt("zremrangebyrank", name, start, end)
 }
+
+/*
+Zremrangebyscore deletes the elements of the zset which have score in the range [start,end].
+Parameters
+    name - The name of the zset.
+    start - (inclusive).
+    end - (inclusive).
+Return Value
+	false on error, or the number of deleted elements.
+*/
 func (c *Client) Zremrangebyscore(name string, start, end int64) (int64, error) {
 	return c.doReturnInt("zremrangebyscore", name, start, end)
 }
 
 /*
-Delete and return `limit` element(s) from front of the zset.
+Zpopfront deletes and returns `limit` element(s) from front of the zset.
 Parameters
-
     name - The name of the zset.
     limit - The number of elements to be deleted and returned.
-
 Return Value
-
-false on error, otherwise an array containing key-score pairs.
+	false on error, otherwise an array containing key-score pairs.
 */
 func (c *Client) Zpopfront(name string, limit int) (OrderedMap, error) {
 	return c.doReturnStringMap("zpop_front", name, limit)
 }
 
+/*
+Zpopback deletes and returns `limit` element(s) from back of the zset.
+Parameters
+    name - The name of the zset.
+    limit - The number of elements to be deleted and returned.
+Return Value
+	false on error, otherwise an array containing key-score pairs.
+*/
 func (c *Client) Zpopback(name string, limit int) (OrderedMap, error) {
 	return c.doReturnStringMap("zpop_back", name, limit)
 }
 
 /*
-MultiHset sets multiple key-value pairs(kvs) of a hashmap in one method call.
+MultiZset sets multiple key-value pairs(kvs) of a zset in one method call.
 Parameters
     name key1 value1 key2 value2 ...
 Return Value
@@ -597,7 +608,7 @@ func (c *Client) MultiZset(args ...interface{}) (int64, error) {
 }
 
 /*
-MultiHget get the values related to the specified multiple keys of a hashmap.
+MultiZget get the values related to the specified multiple keys of a zset.
 Parameters
     name key1 key2 ...
 Return Value
@@ -608,7 +619,7 @@ func (c *Client) MultiZget(keys ...interface{}) ([]string, error) {
 }
 
 /*
-MultiHdel deletes specified multiple keys in a hashmap.
+MultiZdel deletes specified multiple keys in a zset.
 Parameters
     name key1 key2 ...
 Return Value
