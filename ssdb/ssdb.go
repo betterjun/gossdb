@@ -8,6 +8,9 @@ import (
 	"strings"
 )
 
+// Debug indicates whether to print the server response.
+var Debug bool = false
+
 // Client is the agent for server, executing command by calling the methods of this struct.
 type Client struct {
 	sock    *net.TCPConn
@@ -801,7 +804,9 @@ func (c *Client) doReturn(args ...interface{}) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("doReturn: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	if Debug {
+		fmt.Printf("doReturn: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	}
 
 	switch len(resp) {
 	case 0:
@@ -825,7 +830,9 @@ func (c *Client) doReturnInt(args ...interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	fmt.Printf("doReturnInt: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	if Debug {
+		fmt.Printf("doReturnInt: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	}
 
 	switch len(resp) {
 	case 0:
@@ -855,7 +862,9 @@ func (c *Client) doReturnString(args ...interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("doReturnString: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	if Debug {
+		fmt.Printf("doReturnString: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	}
 
 	switch len(resp) {
 	case 0:
@@ -885,7 +894,9 @@ func (c *Client) doReturnStringSlice(args ...interface{}) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("doReturnString: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	if Debug {
+		fmt.Printf("doReturnString: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	}
 
 	switch len(resp) {
 	case 0:
@@ -916,7 +927,9 @@ func (c *Client) doReturnStringMap(args ...interface{}) (OrderedMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("doReturnString: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	if Debug {
+		fmt.Printf("doReturnString: %v returns %v lines, %q\n", args[0], len(resp), strings.Join(resp, "|"))
+	}
 
 	switch len(resp) {
 	case 0:
