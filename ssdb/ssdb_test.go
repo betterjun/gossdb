@@ -2,7 +2,6 @@ package ssdb
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 )
@@ -1173,62 +1172,4 @@ func TestQueue(t *testing.T) {
 	}
 
 	p.Release(c)
-}
-
-var poolForBench *Pool
-var connForBench *Client
-var keyForBench = "kfb"
-var hashForBench = "hmBench"
-var sortedForBench = "sortedBench"
-
-func init() {
-	poolForBench, err := newPool()
-	if err != nil {
-		os.Exit(0)
-	}
-
-	connForBench = poolForBench.Get()
-	err = connForBench.Set(keyForBench, 1)
-	if err != nil {
-		os.Exit(0)
-	}
-}
-
-func BenchmarkKVGet(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		connForBench.Get(keyForBench)
-	}
-}
-
-func BenchmarkKVSet(b *testing.B) {
-	data := make([]byte, 1024)
-	for i := 0; i < b.N; i++ {
-		connForBench.Set(keyForBench, data)
-	}
-}
-
-func BenchmarkHashGet(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		connForBench.Hget(hashForBench, keyForBench)
-	}
-}
-
-func BenchmarkHashSet(b *testing.B) {
-	data := make([]byte, 1024)
-	for i := 0; i < b.N; i++ {
-		connForBench.Hset(hashForBench, keyForBench, data)
-	}
-}
-
-func BenchmarkSortedGet(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		connForBench.Hget(sortedForBench, keyForBench)
-	}
-}
-
-func BenchmarkSortedSet(b *testing.B) {
-	data := make([]byte, 1024)
-	for i := 0; i < b.N; i++ {
-		connForBench.Hset(sortedForBench, keyForBench, data)
-	}
 }
