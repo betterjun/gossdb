@@ -3,7 +3,6 @@ package ssdb
 import (
 	"fmt"
 	"testing"
-	"time"
 )
 
 var (
@@ -19,6 +18,7 @@ func newPool() (*Pool, error) {
 	return NewPool(ServerAddr, ServerPort, Password, 100)
 }
 
+/*
 func TestKV(t *testing.T) {
 	p, err := newPool()
 	if err != nil {
@@ -579,6 +579,350 @@ func TestHashmap(t *testing.T) {
 	}
 	if len(vals) != 0 {
 		t.Fatalf("MultiHget result, expected:%v, got:%v\n", 0, len(vals))
+	}
+
+	p.Release(c)
+}
+*/
+
+func TestSorted(t *testing.T) {
+	p, err := newPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := p.Get()
+
+	var name = "z-set-map"
+	var key = "gossdb"
+	var value int64 = 1000
+
+	_, err = c.Zclear(name)
+	if err != nil {
+		t.Fatalf("Zclear failed, err:%v\n", err)
+	}
+	ret, err := c.Zset(name, key, value)
+	if err != nil {
+		t.Fatalf("Zset failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Zset failed, expected:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.Zset(name, key, value)
+	if err != nil {
+		t.Fatalf("Zset failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Zset failed, expected:%v, got:%v\n", 0, ret)
+	}
+
+	v, err := c.Zget(name, key)
+	if err != nil {
+		t.Fatalf("Zget failed, err:%v\n", err)
+	}
+	if v != value {
+		t.Fatalf("Zget failed, expected:%v, got:%v\n", value, v)
+	}
+
+	ret, err = c.Zexists(name, key)
+	if err != nil {
+		t.Fatalf("Zexists failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Zexists failed, expect:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.Zdel(name, key)
+	if err != nil {
+		t.Fatalf("Zdel failed, err:%v\n", err)
+	}
+
+	ret, err = c.Zexists(name, key)
+	if err != nil {
+		t.Fatalf("Zexists failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Zexists failed, expect:%v, got:%v\n", 0, ret)
+	}
+
+	ret, err = c.Zexists("not-existed-hm", key)
+	if err != nil {
+		t.Fatalf("Zexists failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Zexists failed, expect:%v, got:%v\n", 0, ret)
+	}
+
+	ret, err = c.Zincr(name, key, 2)
+	if err != nil {
+		t.Fatalf("Zincr failed, err:%v\n", err)
+	} else {
+		t.Logf("Zincr key after deleted, value:%v\n", ret)
+	}
+
+	ret, err = c.Zsize(name)
+	if err != nil {
+		t.Fatalf("Zsize failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Zsize failed, expect:%v, got:%v\n", 1, ret)
+	}
+
+	slice, err := c.Zlist("", "", 100)
+	if err != nil {
+		t.Fatalf("Zlist failed, err:%v\n", err)
+	}
+	t.Logf("Zlist result, %v\n", slice)
+
+	slice, err = c.Zrlist("", "", 100)
+	if err != nil {
+		t.Fatalf("Zrlist failed, err:%v\n", err)
+	}
+	t.Logf("Zrlist result, %v\n", slice)
+
+	ret, err = c.MultiZset(name, "a", 1, "b", 2, "c", 4)
+	if err != nil {
+		t.Fatalf("MultiZset failed, err:%v\n", err)
+	}
+	if ret != 3 {
+		t.Fatalf("MultiZset result, expected:%v, got:%v\n", 3, ret)
+	}
+
+	slice, err = c.Zkeys(name, "", 0, 10000, 100)
+	if err != nil {
+		t.Fatalf("Zkeys failed, err:%v\n", err)
+	}
+	t.Logf("Zkeys result, %v\n", slice)
+
+	om, err := c.Zscan(name, "", 0, 1000, 1000)
+	if err != nil {
+		t.Fatalf("Zscan failed, err:%v\n", err)
+	}
+	t.Logf("Zscan result, keys:%v\n", om.Keys())
+	t.Logf("Zscan result, vals:%v\n", om.Values())
+	t.Logf("Zscan result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Zscan result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Zscan failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Zscan failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Zscan result, Next():%q %q\n", k, v)
+		}
+	}
+
+	om, err = c.Zrscan(name, "", 1000, 0, 1000)
+	if err != nil {
+		t.Fatalf("Zrscan failed, err:%v\n", err)
+	}
+	t.Logf("Zrscan result, keys:%v\n", om.Keys())
+	t.Logf("Zrscan result, vals:%v\n", om.Values())
+	t.Logf("Zrscan result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Zrscan result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Zrscan failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Zrscan failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Zrscan result, Next():%q %q\n", k, v)
+		}
+	}
+
+	ret, err = c.Zrank(name, "a")
+	if err != nil {
+		t.Fatalf("Zrank failed, err:%v\n", err)
+	}
+	if ret != 0 {
+		t.Fatalf("Zrank result, expected:%v, got:%v\n", 0, ret)
+	}
+
+	ret, err = c.Zrrank(name, "a")
+	if err != nil {
+		t.Fatalf("Zrrank failed, err:%v\n", err)
+	}
+	if ret != 3 {
+		t.Fatalf("Zrrank result, expected:%v, got:%v\n", 3, ret)
+	}
+
+	om, err = c.Zrange(name, 0, 1000)
+	if err != nil {
+		t.Fatalf("Zrange failed, err:%v\n", err)
+	}
+	t.Logf("Zrange result, keys:%v\n", om.Keys())
+	t.Logf("Zrange result, vals:%v\n", om.Values())
+	t.Logf("Zrange result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Zrange result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Zrange failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Zrange failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Zrange result, Next():%q %q\n", k, v)
+		}
+	}
+
+	om, err = c.Zrrange(name, 0, 1000)
+	if err != nil {
+		t.Fatalf("Zrrange failed, err:%v\n", err)
+	}
+	t.Logf("Zrrange result, keys:%v\n", om.Keys())
+	t.Logf("Zrrange result, vals:%v\n", om.Values())
+	t.Logf("Zrrange result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Zrrange result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Zrrange failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Zrrange failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Zrrange result, Next():%q %q\n", k, v)
+		}
+	}
+
+	ret, err = c.Zcount(name, 0, 1000)
+	if err != nil {
+		t.Fatalf("Zcount failed, err:%v\n", err)
+	}
+	if ret != 4 {
+		t.Fatalf("Zcount result, expected:%v, got:%v\n", 4, ret)
+	}
+	ret, err = c.Zsum(name, 0, 1000)
+	if err != nil {
+		t.Fatalf("Zsum failed, err:%v\n", err)
+	}
+	t.Logf("Zcount result:%v\n", ret)
+	retFloat, err := c.Zavg(name, 0, 1000)
+	if err != nil {
+		t.Fatalf("Zavg failed, err:%v\n", err)
+	}
+	t.Logf("Zavg result:%v\n", retFloat)
+
+	vals, err := c.MultiZget(name, "a", "b", "c")
+	if err != nil {
+		t.Fatalf("MultiZget failed, err:%v\n", err)
+	}
+	if len(vals) != 6 {
+		t.Fatalf("MultiZget result, expected:%v, got:%v\n", 6, len(vals))
+	}
+
+	ret, err = c.MultiZdel(name, "a")
+	if err != nil {
+		t.Fatalf("MultiZdel failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("MultiZdel result, expected:%v, got:%v\n", 1, ret)
+	}
+
+	ret, err = c.Zremrangebyrank(name, 0, 1000)
+	if err != nil {
+		t.Fatalf("Zremrangebyrank failed, err:%v\n", err)
+	}
+	if ret != 3 {
+		t.Fatalf("Zremrangebyrank result, expected:%v, got:%v\n", 2, ret)
+	}
+
+	ret, err = c.MultiZset(name, "a", 1, "b", 2, "c", 4)
+	if err != nil {
+		t.Fatalf("MultiZset failed, err:%v\n", err)
+	}
+	if ret != 3 {
+		t.Fatalf("MultiZset result, expected:%v, got:%v\n", 3, ret)
+	}
+
+	om, err = c.Zpopfront(name, 1)
+	if err != nil {
+		t.Fatalf("Zpopfront failed, err:%v\n", err)
+	}
+	t.Logf("Zpopfront result, keys:%v\n", om.Keys())
+	t.Logf("Zpopfront result, vals:%v\n", om.Values())
+	t.Logf("Zpopfront result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Zpopfront result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Zpopfront failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Zpopfront failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Zpopfront result, Next():%q %q\n", k, v)
+		}
+	}
+
+	om, err = c.Zpopback(name, 1)
+	if err != nil {
+		t.Fatalf("Zpopback failed, err:%v\n", err)
+	}
+	t.Logf("Zpopback result, keys:%v\n", om.Keys())
+	t.Logf("Zpopback result, vals:%v\n", om.Values())
+	t.Logf("Zpopback result, length:%v\n", om.Length())
+	for i := 0; i < om.Length(); i++ {
+		k, v := om.Index(i)
+		t.Logf("Zpopback result, index(%v):%q %q\n", i, k, v)
+		val, ok := om.Lookup(k)
+		if ok != true {
+			t.Fatalf("Zpopback failed, Lookup(%v) not found\n", k)
+		}
+		if val != v {
+			t.Fatalf("Zpopback failed, Lookup(%v)=%q != %q", k, val, v)
+		}
+	}
+	for {
+		if k, v, e := om.Next(); e == true {
+			break
+		} else {
+			t.Logf("Zpopback result, Next():%q %q\n", k, v)
+		}
+	}
+
+	ret, err = c.Zremrangebyscore(name, 0, 1000)
+	if err != nil {
+		t.Fatalf("Zremrangebyscore failed, err:%v\n", err)
+	}
+	if ret != 1 {
+		t.Fatalf("Zremrangebyscore result, expected:%v, got:%v\n", 1, ret)
 	}
 
 	p.Release(c)

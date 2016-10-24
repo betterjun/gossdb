@@ -388,6 +388,236 @@ func (c *Client) MultiHdel(keys ...interface{}) (int64, error) {
 	return c.doReturnInt("multi_hdel", keys)
 }
 
+// For hash map operations.
+/*
+Zset sets the score of the key of a zset.
+Parameters
+    name - The name of the zset
+    key - The key of the key-score pair in the hashmap
+    score - The score of the key-score pair in the hashmap
+Return Value
+	Returns 1 if key is not existed before, else returns 0.
+*/
+func (c *Client) Zset(name, key string, score int64) (int64, error) {
+	return c.doReturnInt("zset", name, key, score)
+}
+
+/*
+Hget gets the score related to the specified key of a zset
+Parameters
+    name - The name of the zset
+    key - The key of the key-score pair in the zset
+Return Value
+	Return the value to the key, if the key does not exists, return not_found Status Code.
+	Return null if key not found, false on error, otherwise, the score related to this key is returned.
+*/
+func (c *Client) Zget(name, key string) (int64, error) {
+	return c.doReturnInt("zget", name, key)
+}
+
+// Hdel deletes specified key of a hashmap.
+// If the key exists, return 1, otherwise return 0.
+func (c *Client) Zdel(name, key string) (int64, error) {
+	return c.doReturnInt("zdel", name, key)
+}
+
+/*
+Hincr increases the number stored at key in a hashmap by num. The num argument could be a negative integer.
+The old number is first converted to an integer before increment, assuming it was stored as literal integer.
+Parameters
+    name - the name of the hashmap
+    key - The key of the key-value pair in the hashmap
+    num - Optional, must be a signed integer, default is 1
+Return Value
+	The new value. If the old value cannot be converted to an integer, returns error Status Code.
+*/
+func (c *Client) Zincr(name, key string, num int) (int64, error) {
+	return c.doReturnInt("zincr", name, key, num)
+}
+
+// Hexists verifies if the specified key exists in a hashmap.
+// If the key exists, return 1, otherwise return 0.
+func (c *Client) Zexists(name, key string) (int64, error) {
+	return c.doReturnInt("zexists", name, key)
+}
+
+// Hsize returns the number of key-value pairs in the hashmap.
+func (c *Client) Zsize(name string) (int64, error) {
+	return c.doReturnInt("zsize", name)
+}
+
+// Hlist lists hashmap names in range (name_start, name_end].
+func (c *Client) Zlist(nameStart, nameEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("zlist", nameStart, nameEnd, limit)
+}
+
+// Hrlist works like Hlist, but in reverse order.
+func (c *Client) Zrlist(nameStart, nameEnd string, limit int) ([]string, error) {
+	return c.doReturnStringSlice("zrlist", nameStart, nameEnd, limit)
+}
+
+// Hrlist works like Hlist, but in reverse order.
+func (c *Client) Zkeys(name, keyStart string, scoreStart, scoreEnd int64, limit int) ([]string, error) {
+	return c.doReturnStringSlice("zkeys", name, keyStart, scoreStart, scoreEnd, limit)
+}
+
+/*
+Hscan lists key-value pairs of a hashmap with keys in range (key_start, key_end].
+For more details, refer Scan.
+*/
+func (c *Client) Zscan(name, keyStart string, scoreStart, scoreEnd int64, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("zscan", name, keyStart, scoreStart, scoreEnd, limit)
+}
+
+// Hrscan works likely Hscan, but in reverse order.
+func (c *Client) Zrscan(name, keyStart string, scoreStart, scoreEnd int64, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("zrscan", name, keyStart, scoreStart, scoreEnd, limit)
+}
+
+/*
+Description
+
+Important! This method may be extremly SLOW! May not be used in an online service.
+
+Returns the rank(index) of a given key in the specified sorted set, starting at 0 for the item with the smallest score. zrrank starts at 0 for the item with the largest score.
+Parameters
+
+    name - The name of the zset.
+    key -
+
+Return Value
+
+false on error, otherwise the rank(index) of a specified key, start at 0. null if not found.
+*/
+func (c *Client) Zrank(name, key string) (int64, error) {
+	return c.doReturnInt("zrank", name, key)
+}
+
+// Hrscan works likely Hscan, but in reverse order.
+func (c *Client) Zrrank(name, key string) (int64, error) {
+	return c.doReturnInt("zrrank", name, key)
+}
+
+/*
+Description
+
+Important! This method is SLOW for large offset!
+
+Returns a range of key-score pairs by index range [offset, offset + limit). Zrrange iterates in reverse order.
+Parameters
+
+    name - The name of the zset.
+    offset - Positive integer, the returned pairs will start at this offset.
+    limit - Positive integer, up to this number of pairs will be returned.
+
+Return Value
+
+false on error, otherwise an array containing key-score pairs.
+*/
+func (c *Client) Zrange(name string, offset, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("zrange", name, offset, limit)
+}
+
+// Hrscan works likely Hscan, but in reverse order.
+func (c *Client) Zrrange(name string, offset, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("zrrange", name, offset, limit)
+}
+
+/*
+Hclear deletes all keys in a hashmap.
+The number of keys deleted in that hashmap is returned.
+*/
+func (c *Client) Zclear(name string) (int64, error) {
+	return c.doReturnInt("zclear", name)
+}
+
+/*
+Description
+
+Returns the number of elements of the sorted set stored at the specified key which have scores in the range [start,end].
+Parameters
+
+    name - The name of the zset.
+    start - The minimum score related to keys(inclusive), empty string means -inf(no limit).
+    end - The maximum score related to keys(inclusive), empty string means +inf(no limit).
+
+Return Value
+
+false on error, or the number of keys in specified range.
+*/
+func (c *Client) Zcount(name string, start, end int64) (int64, error) {
+	return c.doReturnInt("zcount", name, start, end)
+}
+
+func (c *Client) Zsum(name string, start, end int64) (int64, error) {
+	return c.doReturnInt("zsum", name, start, end)
+}
+func (c *Client) Zavg(name string, start, end int64) (float64, error) {
+	str, err := c.doReturnString("zavg", name, start, end)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseFloat(str, 64)
+}
+func (c *Client) Zremrangebyrank(name string, start, end int64) (int64, error) {
+	return c.doReturnInt("zremrangebyrank", name, start, end)
+}
+func (c *Client) Zremrangebyscore(name string, start, end int64) (int64, error) {
+	return c.doReturnInt("zremrangebyscore", name, start, end)
+}
+
+/*
+Delete and return `limit` element(s) from front of the zset.
+Parameters
+
+    name - The name of the zset.
+    limit - The number of elements to be deleted and returned.
+
+Return Value
+
+false on error, otherwise an array containing key-score pairs.
+*/
+func (c *Client) Zpopfront(name string, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("zpop_front", name, limit)
+}
+
+func (c *Client) Zpopback(name string, limit int) (OrderedMap, error) {
+	return c.doReturnStringMap("zpop_back", name, limit)
+}
+
+/*
+MultiHset sets multiple key-value pairs(kvs) of a hashmap in one method call.
+Parameters
+    name key1 value1 key2 value2 ...
+Return Value
+	Number of keys are set.
+*/
+func (c *Client) MultiZset(args ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_zset", args)
+}
+
+/*
+MultiHget get the values related to the specified multiple keys of a hashmap.
+Parameters
+    name key1 key2 ...
+Return Value
+	Key-value list.
+*/
+func (c *Client) MultiZget(keys ...interface{}) ([]string, error) {
+	return c.doReturnStringSlice("multi_zget", keys)
+}
+
+/*
+MultiHdel deletes specified multiple keys in a hashmap.
+Parameters
+    name key1 key2 ...
+Return Value
+	Number of keys are deleted.
+*/
+func (c *Client) MultiZdel(keys ...interface{}) (int64, error) {
+	return c.doReturnInt("multi_zdel", keys)
+}
+
 func (c *Client) doReturn(args ...interface{}) error {
 	err := c.send(args)
 	if err != nil {
